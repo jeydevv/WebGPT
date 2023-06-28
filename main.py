@@ -13,7 +13,7 @@ from urllib.request import Request
 os.environ['OPENAI_API_KEY'] = ""
 
 
-def get_html_vdb(url):
+def get_html(url):
     hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
            'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
@@ -23,10 +23,17 @@ def get_html_vdb(url):
     req = Request(url, headers=hdr)
     response = urlopen(req)
     html = str(response.read())
-    response.close()
-
     html = html.replace("{", " ")
     html = html.replace("}", " ")
+    html = html.replace("\n", " ")
+    response.close()
+    return html
+
+
+def get_html_vdb(url):
+    html = get_html(url)
+
+    first_snippet = html[:4000]
 
     with open('temp/page.txt', 'w') as f:
         f.write(html)
@@ -40,12 +47,13 @@ def get_html_vdb(url):
     html_as_tokens = text_splitter.split_documents(html)
     vector_db = FAISS.from_documents(html_as_tokens, OpenAIEmbeddings())
 
-    return vector_db
+    return vector_db, first_snippet
 
 
-def get_analysis(vector_db, input_query, k=4):
+def get_analysis(vector_db, first_snippet, input_query, k=10):
     related_snippets = vector_db.similarity_search(input_query, k=k)
-    page_content = " ".join([doc.page_content for doc in related_snippets])
+    page_content = first_snippet + " ".join([doc.page_content for doc in related_snippets])
+    print(page_content)
 
     chat = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.1)
 
@@ -57,12 +65,16 @@ def get_analysis(vector_db, input_query, k=4):
         
         If you don't have enough information ask for more.
         
-        Your answers should be brief but detailed. Use bullit points.
+        Your answers should be detailed and do not use bullit points unless asked about SEO.
+        
+        When asked for the website's SEO performance, break it down into bullit points and give advice on each one.
+        
+        If you are not able to determine the SEO performance of a website, say why in detail.
     """
 
     system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
 
-    human_template = "{question}. give bullit points if it makes sense to."
+    human_template = "{question}"
     human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 
     chat_prompt = ChatPromptTemplate.from_messages(
@@ -75,18 +87,17 @@ def get_analysis(vector_db, input_query, k=4):
     return response, related_snippets
 
 
-def analyse(homepage_url):
-    test_url = "https://joshsawyer.co.uk/"
-    vdb = get_html_vdb(test_url)
-    query = "does the website have good seo? break it down in bullit points with advice for each one"
-    response_main, docs_main = get_analysis(vdb, query)
+def analyse_seo(homepage_url):
+    vdb, first_snippet = get_html_vdb(homepage_url)
+    query = "does the website have good seo? break it down in bullit points with advice for each one. give praise when good seo is found."
+    response_main, docs_main = get_analysis(vdb, first_snippet, query)
     return response_main
 
 
 gui = gr.Interface(
-    fn=analyse,
-    inputs=gr.Textbox(label="Homepage URL", lines=1, placeholder="Homepage URL, e.g. 'brightminded.com'..."),
-    outputs=gr.Textbox(label="Output"),
+    fn=analyse_seo,
+    inputs=gr.Textbox(label="Webpage URL", lines=1, placeholder="Webpage URL, e.g. 'https://brightminded.com'..."),
+    outputs=gr.Textbox(label="SEO Breakdown"),
     allow_flagging="manual",
     flagging_options=[("Save Output", "save")],
     flagging_dir="saves",
