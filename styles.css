@@ -1,0 +1,6 @@
+div.gradio-container {
+  margin: auto !important;
+  width: 75% !important;
+  padding: 10px !important;
+  flex-grow: 0 !important;
+}
