@@ -53,7 +53,6 @@ def get_html_vdb(url):
 def get_analysis(vector_db, first_snippet, input_query, k=10):
     related_snippets = vector_db.similarity_search(input_query, k=k)
     page_content = first_snippet + " ".join([doc.page_content for doc in related_snippets])
-    print(page_content)
 
     chat = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.1)
 
@@ -94,16 +93,37 @@ def analyse_seo(homepage_url):
     return response_main
 
 
-gui = gr.Interface(
+def analyse_question(homepage_url, question):
+    vdb, first_snippet = get_html_vdb(homepage_url)
+    query = question
+    response_main, docs_main = get_analysis(vdb, "", query)
+    return response_main
+
+
+seo_gui = gr.Interface(
     fn=analyse_seo,
     inputs=gr.Textbox(label="Webpage URL", lines=1, placeholder="Webpage URL, e.g. 'https://brightminded.com'..."),
     outputs=gr.Textbox(label="SEO Breakdown"),
-    allow_flagging="manual",
-    flagging_options=[("Save Output", "save")],
-    flagging_dir="saves",
-    css="styles.css",
-    title="BrightGPT",
-    description="<center>A website analysis and SEO reporting GPT-agent using a GUI and implementing vector storage</center>"
+    allow_flagging="never",
+    title="SEO",
+    description="<center>Enter the URL of a webpage to get it's SEO breakdown and advice</center>"
 )
 
-gui.launch(favicon_path="brightminded-logo.webp")
+question_gui = gr.Interface(
+    fn=analyse_question,
+    inputs=[gr.Textbox(label="Webpage URL", lines=1, placeholder="Webpage URL, e.g. 'https://brightminded.com'..."),
+            gr.Textbox(label="Question", lines=1, placeholder="Your Question, e.g. 'What is this website about?'...")],
+    outputs=gr.Textbox(label="Response"),
+    allow_flagging="never",
+    title="Q&A",
+    description="<center>Enter the URL of a webpage and a question to get the answer</center>"
+)
+
+main_gui = gr.TabbedInterface(
+    [seo_gui, question_gui],
+    ["SEO Report", "Website Questions"],
+    title="BrightGPT",
+    css="styles.css"
+)
+
+main_gui.launch(favicon_path="brightminded-logo.webp")
