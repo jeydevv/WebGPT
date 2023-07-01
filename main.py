@@ -162,31 +162,33 @@ def analyse_question(homepage_url, question):
 # GUI construction for the "SEO Report" tab
 seo_gui = gr.Interface(
     fn=analyse_seo,
-    inputs=gr.Textbox(label="Webpage URL", lines=1, placeholder="Webpage URL, e.g. 'https://brightminded.com'..."),
+    inputs=gr.Textbox(label="Webpage URL", lines=1, placeholder="Webpage URL, e.g. 'https://openai.com'..."),
     outputs=gr.Textbox(label="SEO Breakdown"),
     allow_flagging="never",
     title="SEO",
-    description="<center>Enter the URL of a webpage to get it's SEO breakdown and advice</center>"
+    description="<center>Enter the URL of a webpage to get it's SEO breakdown and advice</center>",
+    examples=["https://openai.com"]
 )
 
 # GUI construction for the "Website Questions" tab
 question_gui = gr.Interface(
     fn=analyse_question,
-    inputs=[gr.Textbox(label="Webpage URL", lines=1, placeholder="Webpage URL, e.g. 'https://brightminded.com'..."),
+    inputs=[gr.Textbox(label="Webpage URL", lines=1, placeholder="Webpage URL, e.g. 'https://openai.com'..."),
             gr.Textbox(label="Question", lines=1, placeholder="Your Question, e.g. 'What is this website about?'...")],
     outputs=gr.Textbox(label="Answer"),
     allow_flagging="never",
     title="Q&A",
-    description="<center>Enter the URL of a webpage and a question to get the answer</center>"
+    description="<center>Enter the URL of a webpage and a question to get the answer</center>",
+    examples=[["https://openai.com", "What is this website about?"]]
 )
 
 # GUI construction for the tabbed interface (the main GUI)
 main_gui = gr.TabbedInterface(
     [seo_gui, question_gui],
     ["SEO Report", "Website Questions"],
-    title="BrightGPT",
+    title="WebGPT",
     css="styles.css"
 )
 
 # Initialise the GUI
-main_gui.launch(favicon_path="brightminded-logo.webp")
+main_gui.launch(favicon_path="j.png")
